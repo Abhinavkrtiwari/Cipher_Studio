@@ -13,7 +13,9 @@ import {
   Square,
   Maximize2,
   Minimize2,
-  Copy
+  Copy,
+  LogOut,
+  User
 } from 'lucide-react'
 import { useProjectStore } from '@/store/projectStore'
 import { cn } from '@/utils/cn'
@@ -27,7 +29,9 @@ export default function Header() {
     togglePreview,
     updateSettings,
     saveProjectToStorage,
-    createNewProject
+    createNewProject,
+    user,
+    logout
   } = useProjectStore()
   
   const [showSettings, setShowSettings] = useState(false)
@@ -119,6 +123,12 @@ export default function Header() {
     } catch (error) {
       console.error('Failed to copy project:', error)
       alert('Failed to copy project to clipboard')
+    }
+  }
+
+  const handleLogout = () => {
+    if (confirm('Are you sure you want to logout?')) {
+      logout()
     }
   }
 
@@ -217,6 +227,23 @@ export default function Header() {
           ) : (
             <Sun className="h-4 w-4" />
           )}
+        </button>
+
+        {/* User Info */}
+        {user && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-accent/50 rounded-md ml-2">
+            <User className="h-4 w-4" />
+            <span className="text-sm font-medium hidden sm:inline">{user.name}</span>
+          </div>
+        )}
+
+        {/* Logout Button */}
+        <button
+          onClick={handleLogout}
+          className="p-2 hover:bg-destructive/10 hover:text-destructive rounded-md transition-colors"
+          title="Logout"
+        >
+          <LogOut className="h-4 w-4" />
         </button>
         
         <div className="relative settings-dropdown">

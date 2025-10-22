@@ -7,9 +7,6 @@ import { useMemo as useMemoReact } from 'react'
 export default function Preview() {
   const { currentProject } = useProjectStore()
 
-  // Debug logging
-  console.log('Preview component - currentProject:', currentProject)
-
   const [device, setDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop')
   const [refreshKey, setRefreshKey] = useState(0)
   const [isSmallScreen, setIsSmallScreen] = useState(false)
@@ -291,7 +288,6 @@ root.render(
   </React.StrictMode>
 );`
 
-    console.log('Sandpack files:', files)
     return files
   }, [currentProject])
 
@@ -488,7 +484,7 @@ try {
               setPreviewMessage('')
             }}
             style={{ width: '100%', height: '100%', border: 'none', minHeight: 300 }}
-            sandbox="allow-scripts allow-modals allow-forms allow-same-origin"
+            sandbox="allow-scripts allow-modals allow-forms"
           />
           {/* Parent overlay shown when preview not ready */}
           {previewStatus !== 'ready' && (

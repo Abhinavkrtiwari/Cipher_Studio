@@ -6,6 +6,12 @@ export interface ApiResponse<T = any> {
   message?: string
   project?: T
   projectId?: string
+  user?: {
+    id: string
+    name: string
+    email?: string
+  }
+  token?: string
 }
 
 export class ApiError extends Error {

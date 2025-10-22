@@ -37,9 +37,11 @@ interface ProjectStore {
   // Auth
   isAuthenticated: boolean
   user: { id: string; name: string; email?: string } | null
+  tokenExpiry: number | null
   login: (email: string, password: string) => Promise<boolean>
   register: (email: string, name: string, password: string) => Promise<boolean>
   logout: () => void
+  checkTokenExpiry: () => void
 }
 
 const defaultProject: Project = {
@@ -311,19 +313,11 @@ export const useProjectStore = create<ProjectStore>()(
     (set, get) => ({
       currentProject: defaultProject,
       editorState: defaultEditorState,
-      // Auth (hydrate from localStorage if present)
-      isAuthenticated: !!(typeof window !== 'undefined' && localStorage.getItem('cipherstudio-auth')),
-      user: ((): { id: string; name: string } | null => {
-        try {
-          if (typeof window !== 'undefined') {
-            const raw = localStorage.getItem('cipherstudio-auth')
-            return raw ? JSON.parse(raw) : null
-          }
-        } catch (e) {
-          console.error('Failed to parse auth from storage', e)
-        }
-        return null
-      })(),
+      // Auth - initialize to false to prevent hydration mismatch
+      // Will be loaded from localStorage in loadProjectFromStorage
+      isAuthenticated: false,
+      user: null,
+      tokenExpiry: null,
       
       createNewProject: (name = 'Untitled Project') => {
         const newProject: Project = {
@@ -552,8 +546,11 @@ export const useProjectStore = create<ProjectStore>()(
           const response = await apiClient.post('/auth/login', { email, password })
           if (response?.success && response.user) {
             const user = { id: response.user.id, name: response.user.name, email: response.user.email }
-            set({ isAuthenticated: true, user })
-            localStorage.setItem('cipherstudio-auth', JSON.stringify(user))
+            // Set token expiry to 2 hours from now
+            const tokenExpiry = Date.now() + (2 * 60 * 60 * 1000) // 2 hours in milliseconds
+            const token = response.token || null
+            set({ isAuthenticated: true, user, tokenExpiry })
+            localStorage.setItem('cipherstudio-auth', JSON.stringify({ user, tokenExpiry, token }))
             return true
           }
         } catch (e) {
@@ -566,8 +563,11 @@ export const useProjectStore = create<ProjectStore>()(
           const response = await apiClient.post('/auth/register', { email, name, password })
           if (response?.success && response.user) {
             const user = { id: response.user.id, name: response.user.name, email: response.user.email }
-            set({ isAuthenticated: true, user })
-            localStorage.setItem('cipherstudio-auth', JSON.stringify(user))
+            // Set token expiry to 2 hours from now
+            const tokenExpiry = Date.now() + (2 * 60 * 60 * 1000) // 2 hours in milliseconds
+            const token = response.token || null
+            set({ isAuthenticated: true, user, tokenExpiry })
+            localStorage.setItem('cipherstudio-auth', JSON.stringify({ user, tokenExpiry, token }))
             return true
           }
         } catch (e) {
@@ -576,8 +576,18 @@ export const useProjectStore = create<ProjectStore>()(
         return false
       },
       logout: () => {
-        set({ isAuthenticated: false, user: null })
+        set({ isAuthenticated: false, user: null, tokenExpiry: null })
         localStorage.removeItem('cipherstudio-auth')
+      },
+      checkTokenExpiry: () => {
+        const { tokenExpiry, isAuthenticated } = get()
+        if (isAuthenticated && tokenExpiry) {
+          // Check if token has expired
+          if (Date.now() > tokenExpiry) {
+            console.log('Token expired, logging out...')
+            get().logout()
+          }
+        }
       },
     }),
     {

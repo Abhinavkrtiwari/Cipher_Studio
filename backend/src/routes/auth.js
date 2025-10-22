@@ -1,8 +1,13 @@
 const express = require('express')
 const bcrypt = require('bcrypt')
+const jwt = require('jsonwebtoken')
 const User = require('../models/User')
 
 const router = express.Router()
+
+// JWT secret - in production, use environment variable
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+const JWT_EXPIRY = '2h' // 2 hours
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
@@ -21,7 +26,18 @@ router.post('/register', async (req, res) => {
     const user = new User({ email, name, passwordHash: hash })
     await user.save()
 
-    return res.status(201).json({ success: true, user: { id: user._id, email: user.email, name: user.name } })
+    // Generate JWT token with 2-hour expiration
+    const token = jwt.sign(
+      { userId: user._id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRY }
+    )
+
+    return res.status(201).json({ 
+      success: true, 
+      user: { id: user._id, email: user.email, name: user.name },
+      token
+    })
   } catch (err) {
     console.error('Register error', err)
     res.status(500).json({ success: false, message: 'Internal server error' })
@@ -40,7 +56,18 @@ router.post('/login', async (req, res) => {
     const ok = await bcrypt.compare(password, user.passwordHash)
     if (!ok) return res.status(401).json({ success: false, message: 'Invalid credentials' })
 
-    return res.json({ success: true, user: { id: user._id, email: user.email, name: user.name } })
+    // Generate JWT token with 2-hour expiration
+    const token = jwt.sign(
+      { userId: user._id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRY }
+    )
+
+    return res.json({ 
+      success: true, 
+      user: { id: user._id, email: user.email, name: user.name },
+      token
+    })
   } catch (err) {
     console.error('Login error', err)
     res.status(500).json({ success: false, message: 'Internal server error' })
