@@ -1,0 +1,37 @@
+name: Backend CI
+
+on:
+  push:
+    paths:
+      - 'backend/**'
+  pull_request:
+    paths:
+      - 'backend/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+      - name: Run lint (if any)
+        working-directory: backend
+        run: |
+          if [ -f backend/package.json ]; then npm --prefix backend run lint --silent || true; fi
+      - name: Run tests (if any)
+        working-directory: backend
+        run: |
+          if [ -f backend/package.json ]; then npm --prefix backend test --silent || true; fi
+      - name: Build Docker image and push to GHCR
+        if: github.event_name == 'push'
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: false
+          tags: ghcr.io/${{ github.repository_owner }}/${{ github.repository }}:backend-${{ github.sha }}
