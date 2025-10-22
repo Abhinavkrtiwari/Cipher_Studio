@@ -25,10 +25,10 @@ const limiter = rateLimit({
 })
 app.use('/api/', limiter)
 
-// CORS configuration
+// CORS configuration - Allow all origins
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-  credentials: true
+  origin: '*',
+  credentials: false
 }))
 
 // Body parsing middleware
