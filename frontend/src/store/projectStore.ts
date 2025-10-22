@@ -3,6 +3,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { Project, ProjectFile, EditorState } from '@/types'
+import { apiClient } from '@/utils/api'
 
 interface ProjectStore {
   // Project state
@@ -546,16 +547,11 @@ export const useProjectStore = create<ProjectStore>()(
         get().createNewProject()
       }
       ,
-      // Simple client-only login (demo). In real apps call backend.
       login: async (email: string, password: string) => {
-        // demo auth: read users from localStorage
-        await new Promise(r => setTimeout(r, 300))
         try {
-          const raw = localStorage.getItem('cipherstudio-users')
-          const users: Array<{email:string,name:string,password:string,id:string}> = raw ? JSON.parse(raw) : []
-          const found = users.find(u => u.email === email && u.password === password)
-          if (found) {
-            const user = { id: found.id, name: found.name, email: found.email }
+          const response = await apiClient.post('/auth/login', { email, password })
+          if (response?.success && response.user) {
+            const user = { id: response.user.id, name: response.user.name, email: response.user.email }
             set({ isAuthenticated: true, user })
             localStorage.setItem('cipherstudio-auth', JSON.stringify(user))
             return true
@@ -566,22 +562,18 @@ export const useProjectStore = create<ProjectStore>()(
         return false
       },
       register: async (email: string, name: string, password: string) => {
-        await new Promise(r => setTimeout(r, 300))
         try {
-          const raw = localStorage.getItem('cipherstudio-users')
-          const users: Array<{email:string,name:string,password:string,id:string}> = raw ? JSON.parse(raw) : []
-          if (users.find(u => u.email === email)) return false
-          const newUser = { id: `user-${Date.now()}`, email, name, password }
-          users.push(newUser)
-          localStorage.setItem('cipherstudio-users', JSON.stringify(users))
-          const authUser = { id: newUser.id, name: newUser.name, email: newUser.email }
-          set({ isAuthenticated: true, user: authUser })
-          localStorage.setItem('cipherstudio-auth', JSON.stringify(authUser))
-          return true
+          const response = await apiClient.post('/auth/register', { email, name, password })
+          if (response?.success && response.user) {
+            const user = { id: response.user.id, name: response.user.name, email: response.user.email }
+            set({ isAuthenticated: true, user })
+            localStorage.setItem('cipherstudio-auth', JSON.stringify(user))
+            return true
+          }
         } catch (e) {
           console.error('Register error', e)
-          return false
         }
+        return false
       },
       logout: () => {
         set({ isAuthenticated: false, user: null })

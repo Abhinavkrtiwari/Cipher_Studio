@@ -8,6 +8,7 @@ const morgan = require('morgan')
 require('dotenv').config()
 
 const projectRoutes = require('./routes/projects')
+const authRoutes = require('./routes/auth')
 const { errorHandler } = require('./middleware/errorHandler')
 
 const app = express()
@@ -53,6 +54,7 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/projects', projectRoutes)
+app.use('/api/auth', authRoutes)
 
 // 404 handler
 app.use('*', (req, res) => {
